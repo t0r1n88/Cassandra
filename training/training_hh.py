@@ -2,6 +2,7 @@ import requests
 import pandas as pd
 import json
 import os
+import csv
 
 
 def check_access_api_hh(url):
@@ -31,7 +32,8 @@ def load_data_hh(url, dict_param=None):
     data_json = response.json()
     return data_json
 
-def parse_data_hh(data,url,param_cycle):
+
+def parse_data_hh(data, url, param_cycle):
     """
     :param data:json файл содержащий в ключе pages количество найденых страниц по запросу
     :return: список словарей, вида
@@ -57,19 +59,24 @@ def parse_data_hh(data,url,param_cycle):
             dict_data[dict_number] = {
                 'id': result[y]['id'],
                 'premium': result[y]['premium'],
-                'name': result[y]['name'],
-                'department': result[y]['department'],
-                'has_test': result[y]['has_test'],
-                'area_name': result[y]['area']['name'],
-                'salary': result[y]['salary'],
+                'Наименование вакансии': result[y]['name'],
+                'Город': result[y]['area']['name'],
+                # 'Оклад': result[y]['salary'],
+                # 'Минимальный оклад': result[y].get(['salary']['from']),
+                # 'Максимальный оклад': result[y]['salary']['to'],
+                # 'Оклад указан до вычета налогов': result[y]['salary']['gross'],
+                'Дата опубликования вакансии': result[y]['published_at'],
                 'type_name': result[y]['type']['name'],
-                'snippet_requirement': result[y]['snippet']['requirement']
+                'Требования': result[y]['snippet']['requirement'],
+                'Обязанности': result[y]['snippet']['responsibility'],
+                'Наименование работодателя': result[y]['employer']['name'],
+                'Ссылка на вакансию': result[y]['alternate_url']
             }
             dict_number = dict_number + 1
     return dict_data
 
 
-def save_file(data):
+def save_file_to_json(data):
     """
     Функция для сохранения полученного json для дальнейшей обработки и уменьшения времени парсинга с сайта
     :param data: json  с данными
@@ -78,8 +85,29 @@ def save_file(data):
     # TODO Сделать генерацию имен файлов в виде дат для удобной навигации
     with open('hh.json', 'w', encoding='utf-8') as f:
         # ensure_ascii=False чтобы кириллица отображалась в нормальном виде в файле
-        json.dump(data, f, sort_keys=True, indent=4, ensure_ascii=False)
+        json.dump(data, f, sort_keys=False, indent=4, ensure_ascii=False)
         path = os.path.join(os.path.dirname(__file__), 'hh.json')
+        return path
+
+
+def save_file_to_csv(data):
+    """
+
+    :param data:словарь
+    :return: путь к файлу на диске
+    """
+    with open('example.csv', 'w', encoding='utf-8') as csvfile:
+        writer = csv.writer(csvfile)
+        writer.writerow(('id_вакансии', 'premium', 'Наименование_вакансии', 'Город',
+                         'Дата_опубликования_вакансии', 'Тип_вакансии', 'Требования',
+                         'Обязанности', 'Наименование_работодателя', 'Ссылка_на_вакансию'))
+        for i, vac in data.items():
+            writer.writerow((vac['id'], vac['premium'], vac['Наименование вакансии'], vac['Город'],
+                             vac['Дата опубликования вакансии'],
+                             vac['type_name'], vac['Требования'], vac['Обязанности'], vac['Наименование работодателя'],
+                             vac['Ссылка на вакансию']))
+
+        path = os.path.join(os.path.dirname(__file__), 'example.csv')
         return path
 
 
@@ -90,8 +118,8 @@ if __name__ == '__main__':
     }
     if not check_access_api_hh(URL):
         assert 'API не доступен!!!'
-    data = load_data_hh(URL,param)  # Загружаем сырые данные с сайта
+    data = load_data_hh(URL, param)  # Загружаем сырые данные с сайта
     assert type(data) == dict
-    parsed_data = parse_data_hh(data,URL,param) # Обрабатываем сырые данные
-    path_to_data_hh = save_file(parsed_data) # Сохраняем в файл на диске
-    print(path_to_data_hh)
+    parsed_data = parse_data_hh(data, URL, param)  # Обрабатываем сырые данные
+    path_to_csv_hh = save_file_to_csv(parsed_data)
+

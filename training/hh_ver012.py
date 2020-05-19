@@ -1,13 +1,24 @@
 import requests
+import pandas as pd
 import json
-from datetime import datetime
 import os
 
 
-# Функции для работы
-def parse_hh(url, dict_param=None):
+def check_access_api_hh(url):
     """
-    Функция для парсинга сайта hh.ru
+    Проверка доступности API hh.ru
+    :return: True если API доступен
+            False если API не доступен
+    """
+    response = requests.get(url)
+    if response.status_code == 200:
+        return True
+    return False
+
+
+def load_data_hh(url, dict_param=None):
+    """
+    Функция для определения количества страниц которые подходят под требуемые параметры сайта hh.ru
     :param dict_param: словарь с параметрами для обращения к api
     :return: файл json с данными
     """
@@ -19,6 +30,43 @@ def parse_hh(url, dict_param=None):
     response = requests.get(url, dict_param)
     data_json = response.json()
     return data_json
+
+def parse_data_hh(data,url,param_cycle):
+    """
+    :param data:json файл содержащий в ключе pages количество найденых страниц по запросу
+    :return: список словарей, вида
+    0:{
+    area:value,
+    name:}
+    """
+    # Создаем пустой словарь в который будет складывать данные
+    dict_data = dict()
+    dict_number = 0
+    # Парсим полученный json
+    # в data['pages] хранится количество страниц соответствующих запросу( на каждой странице по 20 результатов)
+    for i in range(0, data['pages']):
+        param_cycle['page'] = i
+        # Отпраляем запрос
+        response_cycle = requests.get(url, param_cycle)
+        print('Запрос №' + str(i))
+        # конвертируем json в словарь
+        result = dict(response_cycle.json())
+        result = result['items']
+        # Парсим исходный list формата Json в dictionary (словарь данных)
+        for y in range(0, len(result) - 1):
+            dict_data[dict_number] = {
+                'id': result[y]['id'],
+                'premium': result[y]['premium'],
+                'name': result[y]['name'],
+                'department': result[y]['department'],
+                'has_test': result[y]['has_test'],
+                'area_name': result[y]['area']['name'],
+                'salary': result[y]['salary'],
+                'type_name': result[y]['type']['name'],
+                'snippet_requirement': result[y]['snippet']['requirement']
+            }
+            dict_number = dict_number + 1
+    return dict_data
 
 
 def save_file(data):
@@ -35,28 +83,15 @@ def save_file(data):
         return path
 
 
-def read_file(path):
-    """
-    Функция для считывания данных из json файла сохраненного на диске
-    :param path: путь к файлу
-    :return: json файл
-    """
-    with open(path, 'r', encoding='utf-8') as f:
-        data = json.load(f)
-    return data
-
-
-URL = 'https://api.hh.ru/vacancies'
-param = {
-    'area': 1118
-}
-# Забираем данные с hh
-data = parse_hh(URL, param)
-assert type(data) == dict, 'Ты допустил ощибку! Получен не словарь! '
-# Сохраняем данные в файл на диске
-path_to_file = save_file(data)
-assert os.path.isfile(path_to_file), 'Файл не найден!'
-# Считываем файл с диска
-data = read_file(path_to_file)
-assert type(data) == dict, 'Неверный тип файла'
-print(data)
+if __name__ == '__main__':
+    URL = 'https://api.hh.ru/vacancies'
+    param = {
+        'area': 1118
+    }
+    if not check_access_api_hh(URL):
+        assert 'API не доступен!!!'
+    data = load_data_hh(URL,param)  # Загружаем сырые данные с сайта
+    assert type(data) == dict
+    parsed_data = parse_data_hh(data,URL,param) # Обрабатываем сырые данные
+    path_to_data_hh = save_file(parsed_data) # Сохраняем в файл на диске
+    print(path_to_data_hh)
