@@ -1,5 +1,5 @@
 import tkinter as tk
-
+import openpyxl
 import pandas as pd
 import os
 from docxtpl import DocxTemplate
@@ -54,29 +54,100 @@ def calculate_data():
     Функция для подсчета данных из файлов
     :return:
     """
-    try:
-        # Считываем csv файл, не забывая что екселевский csv разделен на самомо деле не запятыми а точкой с запятой
-        reader = csv.DictReader(open(names_files_data), delimiter=';')
-        # Конвертируем объект reader в список словарей
-        data = list(reader)
-        # Создаем в цикле документы
-        for row in data:
-            doc = DocxTemplate(name_file_params)
-            context = row
-            # Превращаем строку в список кортежей, где первый элемент кортежа это ключ а второй данные
-            id_row = list(row.items())
-            try:
-                doc.render(context)
-                print(context)
-                print(id_row[0][1])
-                doc.save(f'{path_to_end_folder}/{id_row[0][1]}.docx')
-            except:
-                messagebox.showerror('Cassandra','Возникла проблема')
-                continue
-        messagebox.showinfo('Cassandra', 'Подсчет завершен')
-    except NameError as e:
-        messagebox.showinfo('Cassandra', f'Выберите шаблон,файл с данными и папку куда будут генерироваться файлы')
+    # Получаем название обрабатываемого листа
+    name_list_df = pd.read_excel(name_file_params, nrows=1)
+    name_list = name_list_df['Значение'].loc[0]
 
+    # Получаем шаблон с данными, первую строку пропускаем, поскольку название обрабатываемого листа мы уже получили
+    df = pd.read_excel(name_file_params, skiprows=1)
+
+    # Создаем словарь параметров
+    param_dict = dict()
+
+    for row in df.itertuples():
+        param_dict[row[1]] = row[2]
+    # Создаем словарь для подсчета данных, копируя ключи из словаря параметров, значениями будет 0
+
+    if mode_text_value.get() == 'Yes':
+        result_dct = {key: '' for key, value in param_dict.items()}
+    else:
+        result_dct = {key: 0 for key, value in param_dict.items()}
+
+
+    # Создаем датафрейм для контроля процесса подсчета
+
+    check_df = pd.DataFrame(columns=param_dict.keys())
+    # Вставляем колонку для названия файла
+    check_df.insert(0, 'Название файла', '')
+    for file in names_files_data:
+        # Проверяем чтобы файл не был резервной копией.
+        if '~$' in file:
+            continue
+        # Создаем словарь для создания строки которую мы будем добавлять в проверочный датафрейм
+        new_row = dict()
+        new_row['Название файла'] = file.split('.')[0]
+
+        wb = openpyxl.load_workbook(file)
+        # Получаем активный лист
+        sheet = wb[name_list]
+        for key, cell in param_dict.items():
+            print(mode_text_value.get())
+            result_dct[key] += check_data(sheet[cell].value, mode_text_value.get())
+            new_row[key] = sheet[cell].value
+        check_df = check_df.append(new_row, ignore_index=True)
+
+    check_df.to_excel('Проверка вычисления.xlsx', index=False)
+
+
+    # Создание итоговой таблицы результатов подсчета
+
+    finish_result = pd.DataFrame()
+
+    if mode_text_value.get() == 'Yes':
+        pass
+
+    finish_result['Наименование показателя'] = result_dct.keys()
+    finish_result['Значение показателя'] = result_dct.values()
+
+    finish_result.to_excel('Итоговые значения.xlsx', index=False)
+
+
+
+def check_data(cell,text_mode):
+    """
+    Функция для проверки значения ячейки. Для обработки пустых значений, строковых значений, дат
+    :param cell: значение ячейки
+    :return: 0 если значение ячейки не число
+            число если значение ячейки число
+    думаю функция должна работать с дополнительным параметром, от которого будет зависеть подсчет значений навроде галочек или плюсов в анкетах или опросах.
+    """
+    if text_mode == 'Yes':
+        if cell is None:
+            return ''
+        else:
+            temp_str = str(cell)
+            return f'{temp_str};'
+
+
+
+    if cell is None:
+        return 0
+
+
+    else:
+        if type(cell) == int:
+            return cell
+        elif type(cell) == float:
+            return cell
+        elif type(cell) == bool:
+            if cell is True:
+                return 1
+            else:
+                return 0
+        elif type(cell) == str:
+            return 1
+        else:
+            return 1
 
 
 if __name__ == '__main__':
@@ -85,8 +156,6 @@ if __name__ == '__main__':
     window.geometry('600x800')
     window.resizable(False,False)
 
-    # path_to_icon = resource_path('favicon.ico')
-    # window.iconbitmap(path_to_icon)
 
     # Создаем объект вкладок
 
