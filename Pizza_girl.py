@@ -22,7 +22,7 @@ import pandas as pd
 """
 
 
-def check_data(cell):
+def check_data(cell,text_mode):
     """
     Функция для проверки значения ячейки. Для обработки пустых значений, строковых значений, дат
     :param cell: значение ячейки
@@ -30,17 +30,40 @@ def check_data(cell):
             число если значение ячейки число
     думаю функция должна работать с дополнительным параметром, от которого будет зависеть подсчет значений навроде галочек или плюсов в анкетах или опросах.
     """
-    pass
+    if cell is None:
+        return 0
+    if text_mode:
+        temp_str = str(cell)
+        return temp_str
+
+    else:
+        if type(cell) == int:
+            return cell
+        elif type(cell) == float:
+            return cell
+        elif type(cell) == bool:
+            if cell is True:
+                return 1
+            else:
+                return 0
+        elif type(cell) == str:
+            return 1
+        else:
+            return 1
+
+
 
 
 path = 'data/'
 
 # Получаем название обрабатываемого листа
-name_list_df = pd.read_excel('Шаблон.xlsx', nrows=1)
+# name_list_df = pd.read_excel('Шаблон.xlsx', nrows=1)
+name_list_df = pd.read_excel('Шаблон подсчета.xlsx', nrows=1)
 name_list = name_list_df['Значение'].loc[0]
 
 # Получаем шаблон с данными, первую строку пропускаем, поскольку название обрабатываемого листа мы уже получили
-df = pd.read_excel('Шаблон.xlsx', skiprows=1)
+# df = pd.read_excel('Шаблон.xlsx', skiprows=1)
+df = pd.read_excel('Шаблон подсчета.xlsx', skiprows=1)
 
 # Создаем словарь параметров
 param_dict = dict()
@@ -66,8 +89,9 @@ for file in os.listdir(path):
     wb = openpyxl.load_workbook(f'{path}{file}')
     # Получаем активный лист
     sheet = wb[name_list]
+    mode = False
     for key, cell in param_dict.items():
-        result_dct[key] += sheet[cell].value
+        result_dct[key] += check_data(sheet[cell].value,mode)
         new_row[key] = sheet[cell].value
     check_df = check_df.append(new_row, ignore_index=True)
 
@@ -82,5 +106,7 @@ finish_result = pd.DataFrame()
 
 finish_result['Наименование показателя'] = result_dct.keys()
 finish_result['Значение показателя'] = result_dct.values()
+
+
 
 finish_result.to_excel('Итоговое значение.xlsx',index=False)
