@@ -8,6 +8,13 @@ from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
+import time
+# Отображать все колонки в пандас
+pd.set_option('display.max_columns', None)
+
+
+
+
 
 def resource_path(relative_path):
 
@@ -54,27 +61,32 @@ def calculate_data():
     Функция для подсчета данных из файлов
     :return:
     """
+    count = 0
+    quantity_files = len(names_files_data)
     try:
         # Получаем название обрабатываемого листа
-        name_list_df = pd.read_excel(name_file_params, nrows=1)
+        name_list_df = pd.read_excel(name_file_params, nrows=2)
         name_list = name_list_df['Значение'].loc[0]
 
+        # Получаем количество листов в файле, на случай если название листа не совпадает с правильным
+        quantity_list_in_file = name_list_df['Значение'].loc[1]
+
         # Получаем шаблон с данными, первую строку пропускаем, поскольку название обрабатываемого листа мы уже получили
-        df = pd.read_excel(name_file_params, skiprows=1)
+        df = pd.read_excel(name_file_params, skiprows=2)
 
         # Создаем словарь параметров
         param_dict = dict()
 
         for row in df.itertuples():
             param_dict[row[1]] = row[2]
-        # Создаем словарь для подсчета данных, копируя ключи из словаря параметров, значениями будет 0
+        # Создаем словарь для подсчета данных, копируя ключи из словаря параметров, значения в зависимости от способа обработки
 
         if mode_text_value.get() == 'Yes':
             result_dct = {key: '' for key, value in param_dict.items()}
         else:
             result_dct = {key: 0 for key, value in param_dict.items()}
 
-        # Создаем датафрейм для контроля процесса подсчета и заполняем словарь на основе которого будем делать итоговую таблицу
+            # Создаем датафрейм для контроля процесса подсчета и заполняем словарь на основе которого будем делать итоговую таблицу
 
         check_df = pd.DataFrame(columns=param_dict.keys())
         # Вставляем колонку для названия файла
@@ -89,15 +101,30 @@ def calculate_data():
             full_name_file = file.split('.')[0]
             # Получаем имя файла  без пути
             name_file = full_name_file.split('/')[-1]
-            new_row['Название файла'] = name_file
+            try:
 
-            wb = openpyxl.load_workbook(file)
-            # Получаем активный лист
-            sheet = wb[name_list]
-            for key, cell in param_dict.items():
-                result_dct[key] += check_data(sheet[cell].value, mode_text_value.get())
-                new_row[key] = sheet[cell].value
-            check_df = check_df.append(new_row, ignore_index=True)
+                new_row['Название файла'] = name_file
+
+                wb = openpyxl.load_workbook(file)
+                # Проверяем наличие листа
+                if name_list in wb.sheetnames:
+                    sheet = wb[name_list]
+                elif quantity_list_in_file == 1:
+                    temp_name = wb.sheetnames[0]
+                    sheet = wb[temp_name]
+                else:
+                    raise Exception
+
+                for key, cell in param_dict.items():
+                    result_dct[key] += check_data(sheet[cell].value, mode_text_value.get())
+                    new_row[key] = sheet[cell].value
+                check_df = check_df.append(new_row, ignore_index=True)
+                count += 1
+            # Ловим исключения
+            except Exception as exc:
+                # messagebox.showerror('Cassandra',f'Возникла ошибка при обработке файла {name_file} {exc}')
+                with open('ERRORS.txt', 'w', encoding='utf-8') as f:
+                    f.write(f'Файл {name_file} не обработан!!! Ошибка {exc}\n')
 
         check_df.to_excel('Проверка вычисления.xlsx', index=False)
 
@@ -115,9 +142,10 @@ def calculate_data():
             count_text_df.to_excel('Подсчет текстовых значений.xlsx')
         else:
             finish_result.to_excel('Итоговые значения.xlsx', index=False)
-        messagebox.showinfo('Cassandra','Обработка завершена успешно!')
-    except:
-        messagebox.showerror('Cassandra','Возникла ошибка')
+
+        messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов  {count} из {quantity_files}\n Необработанные файлы указаны в файле ERRORS.txt ')
+    except NameError:
+        messagebox.showerror('Cassandra','Выберите шаблон,обрабатываемые данные, конечную папку')
 
 
 def count_text_value(df):
@@ -145,10 +173,8 @@ def count_text_value(df):
             # print(count_row)
             # Заполняем словарь
             data[(row[1], count_row[1])] = count_row[2]
-
     # Создаем на основе получившегося словаря таблицу
     out_df = pd.Series(data).to_frame().reset_index()
-
     out_df = out_df.set_index(['level_0', 'level_1'])
     out_df.index.names = ['Название показателя', 'Вариант показателя']
     out_df.rename(columns={0: 'Количество'}, inplace=True)
