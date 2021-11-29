@@ -54,62 +54,105 @@ def calculate_data():
     Функция для подсчета данных из файлов
     :return:
     """
-    # Получаем название обрабатываемого листа
-    name_list_df = pd.read_excel(name_file_params, nrows=1)
-    name_list = name_list_df['Значение'].loc[0]
+    try:
+        # Получаем название обрабатываемого листа
+        name_list_df = pd.read_excel(name_file_params, nrows=1)
+        name_list = name_list_df['Значение'].loc[0]
 
-    # Получаем шаблон с данными, первую строку пропускаем, поскольку название обрабатываемого листа мы уже получили
-    df = pd.read_excel(name_file_params, skiprows=1)
+        # Получаем шаблон с данными, первую строку пропускаем, поскольку название обрабатываемого листа мы уже получили
+        df = pd.read_excel(name_file_params, skiprows=1)
 
-    # Создаем словарь параметров
-    param_dict = dict()
+        # Создаем словарь параметров
+        param_dict = dict()
 
+        for row in df.itertuples():
+            param_dict[row[1]] = row[2]
+        # Создаем словарь для подсчета данных, копируя ключи из словаря параметров, значениями будет 0
+
+        if mode_text_value.get() == 'Yes':
+            result_dct = {key: '' for key, value in param_dict.items()}
+        else:
+            result_dct = {key: 0 for key, value in param_dict.items()}
+
+        # Создаем датафрейм для контроля процесса подсчета и заполняем словарь на основе которого будем делать итоговую таблицу
+
+        check_df = pd.DataFrame(columns=param_dict.keys())
+        # Вставляем колонку для названия файла
+        check_df.insert(0, 'Название файла', '')
+        for file in names_files_data:
+            # Проверяем чтобы файл не был резервной копией.
+            if '~$' in file:
+                continue
+            # Создаем словарь для создания строки которую мы будем добавлять в проверочный датафрейм
+            new_row = dict()
+            # Получаем  отбрасываем расширение файла
+            full_name_file = file.split('.')[0]
+            # Получаем имя файла  без пути
+            name_file = full_name_file.split('/')[-1]
+            new_row['Название файла'] = name_file
+
+            wb = openpyxl.load_workbook(file)
+            # Получаем активный лист
+            sheet = wb[name_list]
+            for key, cell in param_dict.items():
+                result_dct[key] += check_data(sheet[cell].value, mode_text_value.get())
+                new_row[key] = sheet[cell].value
+            check_df = check_df.append(new_row, ignore_index=True)
+
+        check_df.to_excel('Проверка вычисления.xlsx', index=False)
+
+        # Создание итоговой таблицы результатов подсчета
+
+        finish_result = pd.DataFrame()
+
+        finish_result['Наименование показателя'] = result_dct.keys()
+        finish_result['Значение показателя'] = result_dct.values()
+        # Проводим обработку в зависимости от значения переключателя
+
+        if mode_text_value.get() == 'Yes':
+            # Обрабатываем датафрейм считая текстовые данные
+            count_text_df = count_text_value(finish_result)
+            count_text_df.to_excel('Подсчет текстовых значений.xlsx')
+        else:
+            finish_result.to_excel('Итоговые значения.xlsx', index=False)
+        messagebox.showinfo('Cassandra','Обработка завершена успешно!')
+    except:
+        messagebox.showerror('Cassandra','Возникла ошибка')
+
+
+def count_text_value(df):
+    """
+    Функция для подсчета количества вариантов того или иного показателя
+    :param df: датафрейм с сырыми данными. Название показателя значение показателя(строка разделенная ;)
+    :return: обработанный датафрейм с мультиндексом, где (Название показателя это индекс верхнего уровня, вариант показателя это индекс второго уровня а значение это сколько раз встречался
+    этот вариант в обрабатываемых файлах)
+    """
+    data = dict()
+
+    #
     for row in df.itertuples():
-        param_dict[row[1]] = row[2]
-    # Создаем словарь для подсчета данных, копируя ключи из словаря параметров, значениями будет 0
-
-    if mode_text_value.get() == 'Yes':
-        result_dct = {key: '' for key, value in param_dict.items()}
-    else:
-        result_dct = {key: 0 for key, value in param_dict.items()}
-
-
-    # Создаем датафрейм для контроля процесса подсчета
-
-    check_df = pd.DataFrame(columns=param_dict.keys())
-    # Вставляем колонку для названия файла
-    check_df.insert(0, 'Название файла', '')
-    for file in names_files_data:
-        # Проверяем чтобы файл не был резервной копией.
-        if '~$' in file:
+        value = row[2]
+        if type(value) == float or type(value) == int:
             continue
-        # Создаем словарь для создания строки которую мы будем добавлять в проверочный датафрейм
-        new_row = dict()
-        new_row['Название файла'] = file.split('.')[0]
+        lst_value = row[2].split(';')[:-1]
+        #     # Отрезаем последний элемент, поскольку это пустое значение
+        temp_df = pd.DataFrame({'Value': lst_value})
+        counts_series = temp_df['Value'].value_counts()
+        # Делаем индекс колонкой и превращаем в обычную таблицу
+        index_count_values = counts_series.reset_index()
+        # Итерируемся по таблице.Это делается чтобы заполниьт словарь на основе которого будет создаваться итоговая таблица
+        for count_row in index_count_values.itertuples():
+            # print(count_row)
+            # Заполняем словарь
+            data[(row[1], count_row[1])] = count_row[2]
 
-        wb = openpyxl.load_workbook(file)
-        # Получаем активный лист
-        sheet = wb[name_list]
-        for key, cell in param_dict.items():
-            print(mode_text_value.get())
-            result_dct[key] += check_data(sheet[cell].value, mode_text_value.get())
-            new_row[key] = sheet[cell].value
-        check_df = check_df.append(new_row, ignore_index=True)
+    # Создаем на основе получившегося словаря таблицу
+    out_df = pd.Series(data).to_frame().reset_index()
 
-    check_df.to_excel('Проверка вычисления.xlsx', index=False)
-
-
-    # Создание итоговой таблицы результатов подсчета
-
-    finish_result = pd.DataFrame()
-
-    if mode_text_value.get() == 'Yes':
-        pass
-
-    finish_result['Наименование показателя'] = result_dct.keys()
-    finish_result['Значение показателя'] = result_dct.values()
-
-    finish_result.to_excel('Итоговые значения.xlsx', index=False)
+    out_df = out_df.set_index(['level_0', 'level_1'])
+    out_df.index.names = ['Название показателя', 'Вариант показателя']
+    out_df.rename(columns={0: 'Количество'}, inplace=True)
+    return out_df
 
 
 
@@ -127,13 +170,8 @@ def check_data(cell,text_mode):
         else:
             temp_str = str(cell)
             return f'{temp_str};'
-
-
-
     if cell is None:
         return 0
-
-
     else:
         if type(cell) == int:
             return cell
