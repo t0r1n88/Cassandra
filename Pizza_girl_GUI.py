@@ -62,7 +62,9 @@ def calculate_data():
     :return:
     """
     count = 0
+    count_errors = 0
     quantity_files = len(names_files_data)
+    current_time = time.strftime(('%H_%M_%S'))
     try:
         # Получаем название обрабатываемого листа
         name_list_df = pd.read_excel(name_file_params, nrows=2)
@@ -121,10 +123,10 @@ def calculate_data():
                 check_df = check_df.append(new_row, ignore_index=True)
                 count += 1
             # Ловим исключения
-            except Exception as exc:
-                # messagebox.showerror('Cassandra',f'Возникла ошибка при обработке файла {name_file} {exc}')
-                with open('ERRORS.txt', 'w', encoding='utf-8') as f:
-                    f.write(f'Файл {name_file} не обработан!!! Ошибка {exc}\n')
+            except Exception as err:
+                count_errors += 1
+                with open(f'ERRORS {current_time}.txt', 'a', encoding='utf-8') as f:
+                    f.write(f'Файл {name_file} не обработан!!!\n')
 
         check_df.to_excel('Проверка вычисления.xlsx', index=False)
 
@@ -143,7 +145,11 @@ def calculate_data():
         else:
             finish_result.to_excel('Итоговые значения.xlsx', index=False)
 
-        messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов  {count} из {quantity_files}\n Необработанные файлы указаны в файле ERRORS.txt ')
+        if count_errors !=0:
+            messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов  {count} из {quantity_files}\n Необработанные файлы указаны в файле ERRORS {current_time}.txt ')
+        else:
+            messagebox.showinfo('Cassandra',f'Обработка файлов успешно завершена!\nОбработано файлов  {count} из {quantity_files}')
+
     except NameError:
         messagebox.showerror('Cassandra','Выберите шаблон,обрабатываемые данные, конечную папку')
 
