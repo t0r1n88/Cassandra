@@ -2,8 +2,7 @@ import tkinter as tk
 import openpyxl
 import pandas as pd
 import os
-from docxtpl import DocxTemplate
-import csv
+
 from tkinter import *
 from tkinter import filedialog
 from tkinter import messagebox
@@ -11,10 +10,6 @@ from tkinter import ttk
 import time
 # Отображать все колонки в пандас
 pd.set_option('display.max_columns', None)
-
-
-
-
 
 def resource_path(relative_path):
 
@@ -128,7 +123,7 @@ def calculate_data():
                 with open(f'ERRORS {current_time}.txt', 'a', encoding='utf-8') as f:
                     f.write(f'Файл {name_file} не обработан!!!\n')
 
-        check_df.to_excel('Проверка вычисления.xlsx', index=False)
+        check_df.to_excel(f'{path_to_end_folder}/Проверка вычисления.xlsx', index=False)
 
         # Создание итоговой таблицы результатов подсчета
 
@@ -141,9 +136,9 @@ def calculate_data():
         if mode_text_value.get() == 'Yes':
             # Обрабатываем датафрейм считая текстовые данные
             count_text_df = count_text_value(finish_result)
-            count_text_df.to_excel('Подсчет текстовых значений.xlsx')
+            count_text_df.to_excel(f'{path_to_end_folder}/Подсчет текстовых значений.xlsx')
         else:
-            finish_result.to_excel('Итоговые значения.xlsx', index=False)
+            finish_result.to_excel(f'{path_to_end_folder}/Итоговые значения.xlsx', index=False)
 
         if count_errors !=0:
             messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов  {count} из {quantity_files}\n Необработанные файлы указаны в файле ERRORS {current_time}.txt ')
@@ -151,7 +146,7 @@ def calculate_data():
             messagebox.showinfo('Cassandra',f'Обработка файлов успешно завершена!\nОбработано файлов  {count} из {quantity_files}')
 
     except NameError:
-        messagebox.showerror('Cassandra','Выберите шаблон,обрабатываемые данные, конечную папку')
+        messagebox.showerror('Cassandra','Выберите файл с параметрами,обрабатываемые данные, конечную папку')
 
 
 def count_text_value(df):
