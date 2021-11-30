@@ -120,7 +120,7 @@ def calculate_data():
             # Ловим исключения
             except Exception as err:
                 count_errors += 1
-                with open(f'ERRORS {current_time}.txt', 'a', encoding='utf-8') as f:
+                with open(f'{path_to_end_folder}/ERRORS {current_time}.txt', 'a', encoding='utf-8') as f:
                     f.write(f'Файл {name_file} не обработан!!!\n')
 
         check_df.to_excel(f'{path_to_end_folder}/Проверка вычисления.xlsx', index=False)
@@ -141,9 +141,9 @@ def calculate_data():
             finish_result.to_excel(f'{path_to_end_folder}/Итоговые значения.xlsx', index=False)
 
         if count_errors !=0:
-            messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов  {count} из {quantity_files}\n Необработанные файлы указаны в файле ERRORS {current_time}.txt ')
+            messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов:  {count} из {quantity_files}\n Необработанные файлы указаны в файле {path_to_end_folder}/ERRORS {current_time}.txt ')
         else:
-            messagebox.showinfo('Cassandra',f'Обработка файлов успешно завершена!\nОбработано файлов  {count} из {quantity_files}')
+            messagebox.showinfo('Cassandra',f'Обработка файлов успешно завершена!\nОбработано файлов:  {count} из {quantity_files}')
 
     except NameError:
         messagebox.showerror('Cassandra','Выберите файл с параметрами,обрабатываемые данные, конечную папку')
@@ -233,7 +233,7 @@ if __name__ == '__main__':
 
     # Добавляем виджеты на вкладку
     # Создаем метку для описания назначения программы
-    lbl_hello = Label(tab_calculate_data, text='Центр опережающей профессиональной подготовки Республики Бурятия\nПодсчет заданных ячеек в таблицах Excel', font=25)
+    lbl_hello = Label(tab_calculate_data, text='Центр опережающей профессиональной подготовки Республики Бурятия\nПодсчет заданных ячеек из нескольких файлов Excel', font=25)
     lbl_hello.grid(column=0, row=0, padx=10, pady=25)
 
     #Картинка
@@ -244,20 +244,20 @@ if __name__ == '__main__':
           ).grid(column=0, row=1, padx=10, pady=25)
 
     # Создаем кнопку Выбрать файл с параметрами
-    btn_select_file_params = Button(tab_calculate_data, text='1) Выберите файл с параметрами', font=('Arial Bold', 20),
+    btn_select_file_params = Button(tab_calculate_data, text='1) Выбрать файл с параметрами', font=('Arial Bold', 20),
                                     command=select_file_params
                                     )
     btn_select_file_params.grid(column=0, row=2, padx=10, pady=10)
 
     # Создаем кнопку Выбрать файл с данными
-    btn_select_files_data = Button(tab_calculate_data, text='2) Выберите файлы с данными', font=('Arial Bold', 20),
+    btn_select_files_data = Button(tab_calculate_data, text='2) Выбрать файлы с данными', font=('Arial Bold', 20),
                                    command=select_files_data
                                    )
     btn_select_files_data.grid(column=0, row=3, padx=10, pady=10)
 
     # Создаем кнопку для выбора папки куда будут генерироваться файлы
 
-    btn_choose_end_folder = Button(tab_calculate_data, text='3) Выберите конечную папку', font=('Arial Bold', 20),
+    btn_choose_end_folder = Button(tab_calculate_data, text='3) Выбрать конечную папку', font=('Arial Bold', 20),
                                    command=select_end_folder
                                    )
     btn_choose_end_folder.grid(column=0, row=4, padx=10, pady=10)
