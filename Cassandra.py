@@ -8,12 +8,12 @@ from tkinter import filedialog
 from tkinter import messagebox
 from tkinter import ttk
 import time
+
 # Отображать все колонки в пандас
 pd.set_option('display.max_columns', None)
 
+
 def resource_path(relative_path):
-
-
     """ Get absolute path to resource, works for dev and for PyInstaller
      Для того чтобы упаковать картинку в exe"""
     try:
@@ -24,6 +24,7 @@ def resource_path(relative_path):
 
     return os.path.join(base_path, relative_path)
 
+
 def select_file_params():
     """
     Функция для выбора файла c ячейками которые нужно подсчитать
@@ -32,6 +33,7 @@ def select_file_params():
     global name_file_params
     name_file_params = filedialog.askopenfilename(
         filetypes=(('Excel files', '*.xlsx'), ('all files', '*.*')))
+
 
 def select_files_data():
     """
@@ -51,6 +53,7 @@ def select_end_folder():
     global path_to_end_folder
     path_to_end_folder = filedialog.askdirectory()
 
+
 def calculate_data():
     """
     Функция для подсчета данных из файлов
@@ -59,7 +62,10 @@ def calculate_data():
     count = 0
     count_errors = 0
     quantity_files = len(names_files_data)
-    current_time = time.strftime(('%H_%M_%S'))
+    current_time = time.strftime('%H_%M_%S')
+    # Состояние чекбокса
+    mode_text = mode_text_value.get()
+
     try:
         # Получаем название обрабатываемого листа
         name_list_df = pd.read_excel(name_file_params, nrows=2)
@@ -78,7 +84,7 @@ def calculate_data():
             param_dict[row[1]] = row[2]
         # Создаем словарь для подсчета данных, копируя ключи из словаря параметров, значения в зависимости от способа обработки
 
-        if mode_text_value.get() == 'Yes':
+        if mode_text == 'Yes':
             result_dct = {key: '' for key, value in param_dict.items()}
         else:
             result_dct = {key: 0 for key, value in param_dict.items()}
@@ -106,6 +112,7 @@ def calculate_data():
                 # Проверяем наличие листа
                 if name_list in wb.sheetnames:
                     sheet = wb[name_list]
+                # проверяем количество листов в файле.Если значение равно 1 то просто берем первый лист, иначе вызываем ошибку
                 elif quantity_list_in_file == 1:
                     temp_name = wb.sheetnames[0]
                     sheet = wb[temp_name]
@@ -113,7 +120,7 @@ def calculate_data():
                     raise Exception
 
                 for key, cell in param_dict.items():
-                    result_dct[key] += check_data(sheet[cell].value, mode_text_value.get())
+                    result_dct[key] += check_data(sheet[cell].value, mode_text)
                     new_row[key] = sheet[cell].value
                 check_df = check_df.append(new_row, ignore_index=True)
                 count += 1
@@ -133,20 +140,22 @@ def calculate_data():
         finish_result['Значение показателя'] = result_dct.values()
         # Проводим обработку в зависимости от значения переключателя
 
-        if mode_text_value.get() == 'Yes':
+        if mode_text == 'Yes':
             # Обрабатываем датафрейм считая текстовые данные
             count_text_df = count_text_value(finish_result)
             count_text_df.to_excel(f'{path_to_end_folder}/Подсчет текстовых значений.xlsx')
         else:
             finish_result.to_excel(f'{path_to_end_folder}/Итоговые значения.xlsx', index=False)
 
-        if count_errors !=0:
-            messagebox.showinfo('Cassandra',f'Обработка файлов завершена!\nОбработано файлов:  {count} из {quantity_files}\n Необработанные файлы указаны в файле {path_to_end_folder}/ERRORS {current_time}.txt ')
+        if count_errors != 0:
+            messagebox.showinfo('Cassandra',
+                                f'Обработка файлов завершена!\nОбработано файлов:  {count} из {quantity_files}\n Необработанные файлы указаны в файле {path_to_end_folder}/ERRORS {current_time}.txt ')
         else:
-            messagebox.showinfo('Cassandra',f'Обработка файлов успешно завершена!\nОбработано файлов:  {count} из {quantity_files}')
+            messagebox.showinfo('Cassandra',
+                                f'Обработка файлов успешно завершена!\nОбработано файлов:  {count} из {quantity_files}')
 
     except NameError:
-        messagebox.showerror('Cassandra','Выберите файл с параметрами,обрабатываемые данные, конечную папку')
+        messagebox.showerror('Cassandra', 'Выберите файл с параметрами,обрабатываемые данные, конечную папку')
 
 
 def count_text_value(df):
@@ -163,13 +172,14 @@ def count_text_value(df):
         value = row[2]
         if type(value) == float or type(value) == int:
             continue
+        # Создаем список, разделяя строку по ;
         lst_value = row[2].split(';')[:-1]
         #     # Отрезаем последний элемент, поскольку это пустое значение
         temp_df = pd.DataFrame({'Value': lst_value})
         counts_series = temp_df['Value'].value_counts()
         # Делаем индекс колонкой и превращаем в обычную таблицу
         index_count_values = counts_series.reset_index()
-        # Итерируемся по таблице.Это делается чтобы заполниьт словарь на основе которого будет создаваться итоговая таблица
+        # Итерируемся по таблице.Это делается чтобы заполнить словарь на основе которого будет создаваться итоговая таблица
         for count_row in index_count_values.itertuples():
             # print(count_row)
             # Заполняем словарь
@@ -182,8 +192,7 @@ def count_text_value(df):
     return out_df
 
 
-
-def check_data(cell,text_mode):
+def check_data(cell, text_mode):
     """
     Функция для проверки значения ячейки. Для обработки пустых значений, строковых значений, дат
     :param cell: значение ячейки
@@ -214,8 +223,7 @@ if __name__ == '__main__':
     window = Tk()
     window.title('Cassandra')
     window.geometry('600x800')
-    window.resizable(False,False)
-
+    window.resizable(False, False)
 
     # Создаем объект вкладок
 
@@ -228,10 +236,12 @@ if __name__ == '__main__':
 
     # Добавляем виджеты на вкладку
     # Создаем метку для описания назначения программы
-    lbl_hello = Label(tab_calculate_data, text='Центр опережающей профессиональной подготовки Республики Бурятия\nПодсчет заданных ячеек из нескольких файлов Excel', font=25)
+    lbl_hello = Label(tab_calculate_data,
+                      text='Центр опережающей профессиональной подготовки Республики Бурятия\nПодсчет значений заданных ячеек из нескольких файлов Excel',
+                      font=25)
     lbl_hello.grid(column=0, row=0, padx=10, pady=25)
 
-    #Картинка
+    # Картинка
     path_to_img = resource_path('logo.png')
     img = PhotoImage(file=path_to_img)
     Label(tab_calculate_data,
@@ -263,12 +273,12 @@ if __name__ == '__main__':
     mode_text_value.set('No')
     # Создаем чекбокс для выбора режима подсчета
 
-    chbox_mode_calculate = tk.Checkbutton(tab_calculate_data,text='Поставьте галочку, если вам нужно посчитать текстовые данные ',
-                                               variable=mode_text_value,
+    chbox_mode_calculate = tk.Checkbutton(tab_calculate_data,
+                                          text='Поставьте галочку, если вам нужно посчитать текстовые данные ',
+                                          variable=mode_text_value,
                                           offvalue='No',
                                           onvalue='Yes')
     chbox_mode_calculate.grid(column=0, row=5, padx=10, pady=10)
-
 
     # Создаем кнопку для запуска подсчета файлов
 
@@ -276,6 +286,5 @@ if __name__ == '__main__':
                            command=calculate_data
                            )
     btn_calculate.grid(column=0, row=6, padx=10, pady=10)
-
 
     window.mainloop()
