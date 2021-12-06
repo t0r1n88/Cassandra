@@ -198,23 +198,16 @@ def check_data(cell,text_mode):
         else:
             temp_str = str(cell)
             return f'{temp_str};'
-    # Если режим работы стандартный
-    if cell is None:
-        return 0
+    # Если режим работы стандартный. Убрал подсчет строк и символов в числовом режиме, чтобы не запутывать.
     else:
+        if cell is None:
+            return 0
         if type(cell) == int:
             return cell
         elif type(cell) == float:
             return cell
-        elif type(cell) == bool:
-            if cell is True:
-                return 1
-            else:
-                return 0
-        elif type(cell) == str:
-            return 1
         else:
-            return 1
+            return 0
 
 
 if __name__ == '__main__':
