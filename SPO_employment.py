@@ -43,7 +43,8 @@ def create_low_dct():
                 'Причины, по которым выпускники находятся под риском нетрудоустройства, и принимаемые меры (тезисно)': ''}
 
     # Создаем словарь нижнего уровня
-    temp_dct = {key: base_dct for key in base_cat}
+    # ССЫЛОЧНАЯ МОДЕЛЬ!!! Я ССЫЛАЛСЯ НА ОДИН И ТОТ ЖЕ СЛОВАРЬ УУУУ
+    temp_dct = {key: base_dct.copy() for key in base_cat}
     return temp_dct
 
 
@@ -82,30 +83,27 @@ for sheet in sheets:
         """
         В итоге получается такая струтура {'КТИНЗ': {'29.01.07': {}, '35.01.23': {}, '43.01.09': {}, '54.01.06': {}, '54.01.03': {}, '35.02.07': {}, '54.02.02': {}}, 'ТСГХ': {}, 'БФКК': {}}
         """
-        print(id(spec_code_dct))
         high_dct[sheet] = spec_code_dct
-        print(id(high_dct[sheet]))
         # Итерируемся по полученному датафрейму через itertuples
         for row in df.itertuples():
             # Получаем код специальности для итерируемой строки. Отбрасываем пустые строки, просто проверяя есть ли такой ключ в главном словаре
-            row_code = row[4]
-            if row_code in high_dct[sheet]:
+            spec_code = row[4]
+            if spec_code in high_dct[sheet]:
                 # КТИНЗ:35.01.23:
                 # print(high_dct[sheet][row_code])
-                cat = row[6]
-
-                # high_dct[sheet][row_code][cat]['Выпуск в 2021'] = row[7]
-                # high_dct[sheet][row_code][cat]['Трудоустроено человек'] = row[8]
-
+                name_param = row[6] # Допустим Всего
+                high_dct[sheet][spec_code][name_param]['Выпуск в 2021'] = row[7]
+                high_dct[sheet][spec_code][name_param]['Трудоустроено человек'] = 54
 
 
 
 
 
 
-print(high_dct['КТИНЗ']['35.01.23']['Всего '])
-print(high_dct['КТИНЗ']['35.01.23']['Лица с ограниченными возможностями здоровья'])
-print('****************')
-print(high_dct['ТСГХ']['08.01.14']['Всего '])
+
+print(high_dct['КТИНЗ']['29.01.07']['Всего '])
+# print(high_dct['КТИНЗ']['35.01.23']['Лица с ограниченными возможностями здоровья'])
+# print('****************')
+# print(high_dct['ТСГХ']['08.01.14']['Всего '])
 
 
