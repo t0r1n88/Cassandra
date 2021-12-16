@@ -57,6 +57,17 @@ def calculate_data():
     count_errors = 0
     quantity_files = len(names_files_data)
     current_time = time.strftime('%H_%M_%S')
+    # Создаем список всех специальностей которые могут встретиться
+    all_code_spec = []
+    # Колонки для базового датафрейма
+    columns = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12',
+               '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24',
+               '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36',
+               '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48',
+               '49', '50']
+    base_correct_df = pd.DataFrame(columns=columns)
+
+
 
 
     # Итерирумся по списку файлов для обработки
@@ -79,14 +90,7 @@ def calculate_data():
             high_dct = dict.fromkeys(sheets, dict())
 
             # Создаем  общий список для специальностей
-            all_code_spec = []
 
-            columns = ['01', '02', '03', '04', '05', '06', '07', '08', '09', '10', '11', '12',
-                       '13', '14', '15', '16', '17', '18', '19', '20', '21', '22', '23', '24',
-                       '25', '26', '27', '28', '29', '30', '31', '32', '33', '34', '35', '36',
-                       '37', '38', '39', '40', '41', '42', '43', '44', '45', '46', '47', '48',
-                       '49', '50']
-            base_correct_df = pd.DataFrame(columns=columns)
 
             # Открываем файл с указанным листом и сохраняем его в датафрейм пропуская  первые 8 строк
             for sheet in sheets:
@@ -172,8 +176,7 @@ def calculate_data():
                     else:
                         continue
 
-            # Проверяем на корректность(совпадают ли суммы)
-            check_correct_data(base_correct_df)
+
 
             # Удаляем дубликаты
             unique_code_spec = list(set(all_code_spec))
@@ -182,9 +185,8 @@ def calculate_data():
             itog_dct = calculation_data(high_dct, unique_code_spec)
             # Обрабатываем и сохраняем результат подсчета
             prepare_final_table(itog_dct)
+    # Проверяем на корректность(совпадают ли суммы)
 
-            out_df = pd.Series(itog_dct).to_frame().reset_index()
-            out_df.to_excel('Проверка.xlsx')
         except NameError:
             messagebox.showerror('Трудоустройство СПО 2021', 'Выберите файл с параметрами,обрабатываемые данные, конечную папку')
 
@@ -192,6 +194,7 @@ def calculate_data():
             count_errors += 1
             with open(f'{path_to_end_folder}/ERRORS {current_time}.txt', 'a', encoding='utf-8') as f:
                 f.write(f'Файл {file} {err} не обработан!!!\n')
+    check_correct_data(base_correct_df)
 
 
 def check_data(cell):
@@ -418,7 +421,7 @@ def check_correct_data(df):
 
 if __name__ == '__main__':
     window = Tk()
-    window.title('СПО Трудоустройство выпускников 2021')
+    window.title('СПО Трудоустройство выпускников 2021 Ver 0.9')
     window.geometry('600x800')
     window.resizable(False, False)
 
