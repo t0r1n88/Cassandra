@@ -671,7 +671,7 @@ for file in os.listdir(path):
 
 print(d)
 
-with open('text.txt','w',encoding='utf-8') as file:
+with open('Школы.txt','w',encoding='utf-8') as file:
     for key,value in d.items():
         file.write(f'{key}\n, {value}\n\n')
 miss_df.to_excel('3.3 Удовлетворенность результатами профориентационной работы.xlsx',index=False)

@@ -107,6 +107,4 @@ finish_result = pd.DataFrame()
 finish_result['Наименование показателя'] = result_dct.keys()
 finish_result['Значение показателя'] = result_dct.values()
 
-
-
 finish_result.to_excel('Итоговое значение.xlsx',index=False)
